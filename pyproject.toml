@@ -1,0 +1,36 @@
+[project]
+name = "hide-ads"
+version = "0.1.0"
+description = "Adversarial video tool — make videos invisible to AI detection"
+requires-python = ">=3.11,<3.12"
+dependencies = [
+    "fastapi>=0.115.0",
+    "uvicorn[standard]>=0.34.0",
+    "python-multipart>=0.0.18",
+    "websockets>=14.0",
+    "torch>=2.5.0",
+    "torchvision>=0.20.0",
+    "ultralytics>=8.3.0",
+    "adversarial-robustness-toolbox>=1.18.0",
+    "ftfy>=6.1.1",
+    "regex>=2024.0.0",
+    "opencv-python-headless>=4.10.0",
+    "numpy>=1.26.0,<2.0.0",
+    "Pillow>=11.0.0",
+    "aiofiles>=24.0.0",
+]
+
+[project.optional-dependencies]
+clip = ["clip @ git+https://github.com/openai/CLIP.git"]
+dev = [
+    "pytest>=8.0",
+    "pytest-asyncio>=0.24.0",
+    "httpx>=0.28.0",
+]
+
+[tool.setuptools.packages.find]
+include = ["backend*", "tests*"]
+
+[tool.pytest.ini_options]
+testpaths = ["tests"]
+asyncio_mode = "auto"

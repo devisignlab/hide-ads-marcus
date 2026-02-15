@@ -1,0 +1,15 @@
+__pycache__/
+*.pyc
+.venv/
+*.egg-info/
+dist/
+build/
+.pytest_cache/
+uploads/
+outputs/
+*.mp4
+*.avi
+*.mov
+!tests/fixtures/*.mp4
+.DS_Store
+.claude/
