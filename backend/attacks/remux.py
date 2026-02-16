@@ -97,43 +97,23 @@ def full_adversarial_remux(
     reencode_audio: bool = True,
     audio_bitrate: str = "128k",
     change_container: bool = True,
-    scramble_audio: bool = True,
 ) -> dict:
     """Full adversarial remux — maximizes hash change while preserving quality.
 
-    1. Scramble audio (phase randomization to defeat speech-to-text)
-    2. Strip metadata (removes tracking info)
-    3. Re-encode audio (changes combined fingerprint)
-    4. Re-mux container (changes file structure)
-    5. Randomize moov atom position (changes file layout)
+    1. Strip metadata (removes tracking info)
+    2. Re-encode audio at lower bitrate (changes fingerprint, same perceptual quality)
+    3. Re-mux container (changes file structure)
+    4. Randomize moov atom position (changes file layout)
+
+    This matches the competitor technique: re-encode audio (194→129 kbps)
+    produces different raw samples but sounds identical to human ear.
     """
-    temp_scrambled_audio = None
+    cmd = ["ffmpeg", "-y", "-i", input_path, "-c:v", "copy"]
 
-    if scramble_audio:
-        from backend.attacks.audio_attack import attack_audio_file
-        temp_scrambled_audio = output_path + ".scrambled.wav"
-        try:
-            attack_audio_file(input_path, temp_scrambled_audio)
-            logger.info("Audio scrambled successfully (phase randomization)")
-        except Exception as e:
-            logger.warning(f"Audio scrambling failed, continuing without: {e}")
-            temp_scrambled_audio = None
-
-    # Build ffmpeg command
-    if temp_scrambled_audio:
-        # Use scrambled audio instead of original
-        cmd = ["ffmpeg", "-y", "-i", input_path, "-i", temp_scrambled_audio,
-               "-c:v", "copy", "-map", "0:v:0", "-map", "1:a:0"]
-        if reencode_audio:
-            cmd.extend(["-c:a", "aac", "-b:a", audio_bitrate])
-        else:
-            cmd.extend(["-c:a", "aac", "-b:a", audio_bitrate])  # always re-encode scrambled
+    if reencode_audio:
+        cmd.extend(["-c:a", "aac", "-b:a", audio_bitrate])
     else:
-        cmd = ["ffmpeg", "-y", "-i", input_path, "-c:v", "copy"]
-        if reencode_audio:
-            cmd.extend(["-c:a", "aac", "-b:a", audio_bitrate])
-        else:
-            cmd.extend(["-c:a", "copy"])
+        cmd.extend(["-c:a", "copy"])
 
     if strip_metadata:
         cmd.extend(["-map_metadata", "-1"])
@@ -144,25 +124,11 @@ def full_adversarial_remux(
     cmd.append(output_path)
 
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
-
-    # Cleanup temp files
-    if temp_scrambled_audio and os.path.exists(temp_scrambled_audio):
-        os.unlink(temp_scrambled_audio)
-
     if result.returncode != 0:
         raise RuntimeError(f"FFmpeg failed: {result.stderr[:500]}")
 
     orig_size = os.path.getsize(input_path)
     new_size = os.path.getsize(output_path)
-
-    techniques = ["video_copy"]
-    if scramble_audio and temp_scrambled_audio:
-        techniques.append("audio_scramble")
-    techniques.append("audio_reencode" if reencode_audio else "audio_copy")
-    if strip_metadata:
-        techniques.append("metadata_strip")
-    if change_container:
-        techniques.append("faststart")
 
     return {
         "input_path": input_path,
@@ -170,5 +136,6 @@ def full_adversarial_remux(
         "original_size": orig_size,
         "processed_size": new_size,
         "size_change_pct": (new_size - orig_size) / orig_size * 100,
-        "techniques": techniques,
+        "techniques": ["video_copy", "audio_reencode" if reencode_audio else "audio_copy",
+                       "metadata_strip" if strip_metadata else "", "faststart" if change_container else ""],
     }
