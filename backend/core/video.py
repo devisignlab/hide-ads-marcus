@@ -115,7 +115,9 @@ class FFmpegWriter:
             "-pix_fmt", "yuv420p",
         ]
         if sar:
-            cmd.extend(["-vf", f"setsar={sar}"])
+            # Convert "9:16" to "9/16" for ffmpeg filter syntax
+            sar_filter = sar.replace(":", "/")
+            cmd.extend(["-vf", f"setsar={sar_filter}"])
         cmd.extend(["-movflags", "+faststart", path])
         logger.info(f"FFmpegWriter: {' '.join(cmd)}")
         self.proc = subprocess.Popen(
