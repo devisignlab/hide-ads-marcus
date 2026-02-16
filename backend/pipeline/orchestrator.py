@@ -372,7 +372,7 @@ def _stream_auto(config: PipelineConfig, info: dict, raw_output: str, progress: 
     # Phase C: Anti-deepfake keyframes if needed (45-65%)
     deltas = {}
     if use_deepfake:
-        keyframe_interval = 30
+        keyframe_interval = 5
         key_indices = select_keyframe_indices(total, keyframe_interval)
         logger.info(f"Auto: Anti-deepfake on {len(key_indices)} keyframes (interval={keyframe_interval})")
 
@@ -380,7 +380,7 @@ def _stream_auto(config: PipelineConfig, info: dict, raw_output: str, progress: 
             frame = read_frames_at_indices(config.video_path, [idx])[0]
             perturbed = attack_deepfake_pgd(
                 frame, epsilon=config.epsilon if config.epsilon > 4/255 else 16/255,
-                steps=5, alpha=4/255
+                steps=15, alpha=4/255
             )
             delta = perturbed.astype(np.int16) - frame.astype(np.int16)
             deltas[idx] = np.clip(delta, -127, 127).astype(np.int8)
