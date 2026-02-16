@@ -336,7 +336,12 @@ def _stream_anti_deepfake(config, info, output_path, progress):
 
 
 def _stream_auto(config: PipelineConfig, info: dict, raw_output: str, progress: ProgressCallback):
-    """Auto mode: Smart analysis -> UAP CLIP + Anti-deepfake PGD + Remux."""
+    """Auto mode: Analyze → frame-by-frame PGD deepfake + CLIP UAP + Remux.
+
+    Phase A: Smart analysis (detect deepfake, NSFW, etc.)
+    Phase B: Compute CLIP UAP if NSFW detected (fast, one-shot)
+    Phase C: Stream all frames — apply PGD deepfake + UAP per frame
+    """
     total = info["frame_count"]
     logger.info(f"Auto mode: analyzing {total} frames")
 
@@ -350,9 +355,12 @@ def _stream_auto(config: PipelineConfig, info: dict, raw_output: str, progress: 
     repel_texts = analysis.get("repel_texts", [])
     repel_text = ", ".join(repel_texts)
 
-    logger.info(f"Auto: flags={analysis['flags']}, use_clip={use_clip}, use_deepfake={use_deepfake}")
+    logger.info(f"Auto: flags={analysis['flags']}, risk={analysis['risk_level']}")
+    logger.info(f"Auto: use_deepfake={use_deepfake}, use_clip={use_clip}")
+    if repel_texts:
+        logger.info(f"Auto: repel_texts={repel_texts[:3]}")
 
-    # Phase B: Compute CLIP UAP if needed (25-45%)
+    # Phase B: Compute CLIP UAP if NSFW detected (25-45%)
     uap = None
     if use_clip and repel_text:
         progress(25, "computing_uap")
@@ -369,51 +377,32 @@ def _stream_auto(config: PipelineConfig, info: dict, raw_output: str, progress: 
 
     progress(45, "perturbing")
 
-    # Phase C: Anti-deepfake keyframes if needed (45-65%)
-    deltas = {}
-    if use_deepfake:
-        keyframe_interval = 1
-        key_indices = select_keyframe_indices(total, keyframe_interval)
-        logger.info(f"Auto: Anti-deepfake on {len(key_indices)} keyframes (interval={keyframe_interval})")
-
-        for ki, idx in enumerate(key_indices):
-            frame = read_frames_at_indices(config.video_path, [idx])[0]
-            perturbed = attack_deepfake_pgd(
-                frame, epsilon=config.epsilon if config.epsilon > 4/255 else 16/255,
-                steps=15, alpha=4/255
-            )
-            delta = perturbed.astype(np.int16) - frame.astype(np.int16)
-            deltas[idx] = np.clip(delta, -127, 127).astype(np.int8)
-            _clear_gpu()
-
-            pct = 45 + int(20 * (ki + 1) / len(key_indices))
-            progress(pct, "anti_deepfake_pgd")
-
-    progress(65, "streaming")
-
-    # Phase D: Stream all frames with UAP + deepfake deltas (65-85%)
-    sorted_keys = sorted(deltas.keys()) if deltas else []
+    # Phase C: Stream all frames — PGD deepfake + UAP per frame (45-85%)
+    logger.info(f"Auto: Streaming frame-by-frame attack")
     writer = open_video_writer(raw_output, info["fps"], info["width"], info["height"], sar=info.get("sar"))
 
     for frame_idx, frame in enumerate(extract_frames(config.video_path)):
         out = frame
 
-        # Apply UAP (instant, <1ms)
+        # PGD against deepfake detector (per frame, ~6% score)
+        if use_deepfake:
+            out = attack_deepfake_pgd(
+                out,
+                epsilon=config.epsilon if config.epsilon > 4/255 else 16/255,
+                steps=10, alpha=4/255,
+                use_eot=False, use_hash=False,
+            )
+
+        # Apply CLIP UAP for NSFW bypass (instant, <1ms per frame)
         if uap is not None:
             out = apply_uap_to_frame(out, uap)
-
-        # Apply deepfake delta (interpolated)
-        if deltas:
-            if frame_idx in deltas:
-                out = np.clip(out.astype(np.int16) + deltas[frame_idx].astype(np.int16), 0, 255).astype(np.uint8)
-            else:
-                out = _interpolate_frame(out, frame_idx, sorted_keys, deltas)
 
         write_frame(writer, out)
 
         if (frame_idx + 1) % 100 == 0:
-            pct = 65 + int(20 * (frame_idx + 1) / total)
-            progress(min(pct, 84), "streaming")
+            pct = 45 + int(40 * (frame_idx + 1) / total)
+            progress(min(pct, 84), "perturbing")
+            logger.info(f"  Auto: {frame_idx+1}/{total} ({100*(frame_idx+1)/total:.0f}%)")
 
     writer.release()
     return total
