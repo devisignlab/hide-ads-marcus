@@ -372,7 +372,7 @@ def _stream_auto(config: PipelineConfig, info: dict, raw_output: str, progress: 
     # Phase C: Anti-deepfake keyframes if needed (45-65%)
     deltas = {}
     if use_deepfake:
-        keyframe_interval = 5
+        keyframe_interval = 1
         key_indices = select_keyframe_indices(total, keyframe_interval)
         logger.info(f"Auto: Anti-deepfake on {len(key_indices)} keyframes (interval={keyframe_interval})")
 
