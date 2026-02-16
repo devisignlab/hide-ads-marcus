@@ -97,18 +97,27 @@ def full_adversarial_remux(
     reencode_audio: bool = True,
     audio_bitrate: str = "128k",
     change_container: bool = True,
+    reencode_video: bool = True,
+    video_crf: int = 20,
 ) -> dict:
     """Full adversarial remux — maximizes hash change while preserving quality.
 
-    1. Strip metadata (removes tracking info)
-    2. Re-encode audio at lower bitrate (changes fingerprint, same perceptual quality)
-    3. Re-mux container (changes file structure)
+    1. Re-encode video with H.264 at visually lossless quality (CRF 20)
+    2. Re-encode audio at lower bitrate (194→128 kbps)
+    3. Strip metadata (removes tracking info)
     4. Randomize moov atom position (changes file layout)
 
-    This matches the competitor technique: re-encode audio (194→129 kbps)
-    produces different raw samples but sounds identical to human ear.
+    CRF 20 produces files similar in size to original H.265 while
+    maintaining excellent visual quality.
     """
-    cmd = ["ffmpeg", "-y", "-i", input_path, "-c:v", "copy"]
+    if reencode_video:
+        # Re-encode video to H.264 (smaller than MPEG4, good compatibility)
+        cmd = ["ffmpeg", "-y", "-i", input_path,
+               "-c:v", "libx264", "-crf", str(video_crf), "-preset", "fast",
+               "-pix_fmt", "yuv420p"]
+        logger.info(f"Re-encoding video with H.264 CRF={video_crf}")
+    else:
+        cmd = ["ffmpeg", "-y", "-i", input_path, "-c:v", "copy"]
 
     if reencode_audio:
         cmd.extend(["-c:a", "aac", "-b:a", audio_bitrate])
