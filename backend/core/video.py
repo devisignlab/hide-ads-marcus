@@ -1,8 +1,11 @@
 import os
+import logging
 import subprocess
 import cv2
 import numpy as np
 from collections.abc import Generator
+
+logger = logging.getLogger(__name__)
 
 
 def get_video_info(path: str) -> dict:
@@ -63,15 +66,65 @@ def read_frames_at_indices(path: str, indices: list[int]) -> list[np.ndarray]:
         cap.release()
 
 
-def open_video_writer(path: str, fps: float, width: int, height: int) -> cv2.VideoWriter:
-    """Open a VideoWriter for incremental frame writing."""
-    fourcc = cv2.VideoWriter_fourcc(*"mp4v")
-    return cv2.VideoWriter(path, fourcc, fps, (width, height))
+class FFmpegWriter:
+    """Write video frames via pipe to ffmpeg — encodes directly to H.264.
+
+    Replaces OpenCV VideoWriter which used MPEG4 (bad quality, large files).
+    Frames are piped as raw RGB24 → ffmpeg encodes to H.264 with CRF control.
+    """
+
+    def __init__(self, path: str, fps: float, width: int, height: int,
+                 crf: int = 18, preset: str = "medium"):
+        self.width = width
+        self.height = height
+        self.path = path
+        cmd = [
+            "ffmpeg", "-y",
+            "-f", "rawvideo",
+            "-vcodec", "rawvideo",
+            "-s", f"{width}x{height}",
+            "-pix_fmt", "rgb24",
+            "-r", str(fps),
+            "-i", "-",
+            "-c:v", "libx264",
+            "-crf", str(crf),
+            "-preset", preset,
+            "-pix_fmt", "yuv420p",
+            "-movflags", "+faststart",
+            path,
+        ]
+        logger.info(f"FFmpegWriter: {' '.join(cmd)}")
+        self.proc = subprocess.Popen(
+            cmd, stdin=subprocess.PIPE, stderr=subprocess.PIPE,
+        )
+        self.frames_written = 0
+
+    def write(self, frame: np.ndarray) -> None:
+        """Write a single RGB uint8 frame."""
+        if frame.shape[1] != self.width or frame.shape[0] != self.height:
+            frame = cv2.resize(frame, (self.width, self.height))
+        self.proc.stdin.write(frame.tobytes())
+        self.frames_written += 1
+
+    def release(self) -> None:
+        """Close pipe and wait for ffmpeg to finish."""
+        self.proc.stdin.close()
+        self.proc.wait()
+        if self.proc.returncode != 0:
+            stderr = self.proc.stderr.read().decode()
+            logger.error(f"FFmpegWriter error: {stderr[:500]}")
+        else:
+            logger.info(f"FFmpegWriter: {self.frames_written} frames → {self.path}")
 
 
-def write_frame(writer: cv2.VideoWriter, frame: np.ndarray) -> None:
-    """Write a single RGB frame to the VideoWriter."""
-    writer.write(cv2.cvtColor(frame, cv2.COLOR_RGB2BGR))
+def open_video_writer(path: str, fps: float, width: int, height: int) -> FFmpegWriter:
+    """Open an FFmpeg pipe writer for H.264 encoding. Drop-in replacement for OpenCV."""
+    return FFmpegWriter(path, fps, width, height, crf=18, preset="medium")
+
+
+def write_frame(writer: FFmpegWriter, frame: np.ndarray) -> None:
+    """Write a single RGB frame. Works with FFmpegWriter (no BGR conversion needed)."""
+    writer.write(frame)
 
 
 def extract_audio(video_path: str, output_path: str) -> str | None:

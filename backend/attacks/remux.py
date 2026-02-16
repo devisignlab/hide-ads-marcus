@@ -96,28 +96,15 @@ def full_adversarial_remux(
     strip_metadata: bool = True,
     reencode_audio: bool = True,
     audio_bitrate: str = "128k",
-    change_container: bool = True,
-    reencode_video: bool = True,
-    video_crf: int = 20,
 ) -> dict:
-    """Full adversarial remux — maximizes hash change while preserving quality.
+    """Adversarial remux — copy video stream, re-encode audio, strip metadata.
 
-    1. Re-encode video with H.264 at visually lossless quality (CRF 20)
-    2. Re-encode audio at lower bitrate (194→128 kbps)
-    3. Strip metadata (removes tracking info)
-    4. Randomize moov atom position (changes file layout)
-
-    CRF 20 produces files similar in size to original H.265 while
-    maintaining excellent visual quality.
+    Video is already H.264 from FFmpegWriter, so we just copy it.
+    Only re-encodes audio and strips metadata to change file hash.
     """
-    if reencode_video:
-        # Re-encode video to H.264 (smaller than MPEG4, good compatibility)
-        cmd = ["ffmpeg", "-y", "-i", input_path,
-               "-c:v", "libx264", "-crf", str(video_crf), "-preset", "fast",
-               "-pix_fmt", "yuv420p"]
-        logger.info(f"Re-encoding video with H.264 CRF={video_crf}")
-    else:
-        cmd = ["ffmpeg", "-y", "-i", input_path, "-c:v", "copy"]
+    cmd = ["ffmpeg", "-y", "-i", input_path,
+           "-c:v", "copy",
+           "-movflags", "+faststart"]
 
     if reencode_audio:
         cmd.extend(["-c:a", "aac", "-b:a", audio_bitrate])
@@ -127,11 +114,9 @@ def full_adversarial_remux(
     if strip_metadata:
         cmd.extend(["-map_metadata", "-1"])
 
-    if change_container:
-        cmd.extend(["-movflags", "+faststart"])
-
     cmd.append(output_path)
 
+    logger.info(f"Remux: {' '.join(cmd)}")
     result = subprocess.run(cmd, capture_output=True, text=True, timeout=600)
     if result.returncode != 0:
         raise RuntimeError(f"FFmpeg failed: {result.stderr[:500]}")
@@ -139,6 +124,7 @@ def full_adversarial_remux(
     orig_size = os.path.getsize(input_path)
     new_size = os.path.getsize(output_path)
 
+    logger.info(f"Remux done: {orig_size} -> {new_size} bytes ({(new_size - orig_size) / orig_size * 100:+.1f}%)")
     return {
         "input_path": input_path,
         "output_path": output_path,
@@ -146,5 +132,5 @@ def full_adversarial_remux(
         "processed_size": new_size,
         "size_change_pct": (new_size - orig_size) / orig_size * 100,
         "techniques": ["video_copy", "audio_reencode" if reencode_audio else "audio_copy",
-                       "metadata_strip" if strip_metadata else "", "faststart" if change_container else ""],
+                       "metadata_strip" if strip_metadata else "", "faststart"],
     }
