@@ -146,7 +146,7 @@ class FFmpegWriter:
 def open_video_writer(path: str, fps: float, width: int, height: int,
                       sar: str | None = None) -> FFmpegWriter:
     """Open an FFmpeg pipe writer for H.264 encoding. Drop-in replacement for OpenCV."""
-    return FFmpegWriter(path, fps, width, height, crf=23, preset="medium", sar=sar)
+    return FFmpegWriter(path, fps, width, height, crf=28, preset="medium", sar=sar)
 
 
 def write_frame(writer: FFmpegWriter, frame: np.ndarray) -> None:
