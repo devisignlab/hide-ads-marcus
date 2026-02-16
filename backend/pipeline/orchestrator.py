@@ -171,7 +171,7 @@ def run_pipeline(
 def _stream_lsb(config, info, output_path, progress):
     """LSB: pure streaming, 1 frame at a time. RAM: ~10MB."""
     total = info["frame_count"]
-    writer = open_video_writer(output_path, info["fps"], info["width"], info["height"])
+    writer = open_video_writer(output_path, info["fps"], info["width"], info["height"], sar=info.get("sar"))
     try:
         for i, frame in enumerate(extract_frames(config.video_path)):
             if config.lsb_mode == "cloak":
@@ -205,7 +205,7 @@ def _stream_uap(config, info, preset, output_path, progress):
     progress(40, "perturbing")
 
     # Stream apply UAP
-    writer = open_video_writer(output_path, info["fps"], info["width"], info["height"])
+    writer = open_video_writer(output_path, info["fps"], info["width"], info["height"], sar=info.get("sar"))
     try:
         for i, frame in enumerate(extract_frames(config.video_path)):
             perturbed = apply_uap([frame], uap)[0]
@@ -258,7 +258,7 @@ def _stream_turbo(config, info, output_path, progress):
     # Phase B: Stream video, apply interpolated deltas (60-85%)
     logger.info("Turbo Phase B: Streaming with interpolation")
     sorted_keys = sorted(deltas.keys())
-    writer = open_video_writer(output_path, info["fps"], info["width"], info["height"])
+    writer = open_video_writer(output_path, info["fps"], info["width"], info["height"], sar=info.get("sar"))
     try:
         for frame_idx, frame in enumerate(extract_frames(config.video_path)):
             if frame_idx in deltas:
@@ -313,7 +313,7 @@ def _stream_anti_deepfake(config, info, output_path, progress):
     # Stream with interpolation
     logger.info("Anti-deepfake Phase B: Streaming with interpolation")
     sorted_keys = sorted(deltas.keys())
-    writer = open_video_writer(output_path, info["fps"], info["width"], info["height"])
+    writer = open_video_writer(output_path, info["fps"], info["width"], info["height"], sar=info.get("sar"))
     try:
         for frame_idx, frame in enumerate(extract_frames(config.video_path)):
             if frame_idx in deltas:
@@ -393,7 +393,7 @@ def _stream_auto(config: PipelineConfig, info: dict, raw_output: str, progress: 
 
     # Phase D: Stream all frames with UAP + deepfake deltas (65-85%)
     sorted_keys = sorted(deltas.keys()) if deltas else []
-    writer = open_video_writer(raw_output, info["fps"], info["width"], info["height"])
+    writer = open_video_writer(raw_output, info["fps"], info["width"], info["height"], sar=info.get("sar"))
 
     for frame_idx, frame in enumerate(extract_frames(config.video_path)):
         out = frame
@@ -479,7 +479,7 @@ def _stream_gradient_attack(config, info, preset, output_path, progress):
 
     # Phase B: Stream through video, apply interpolated deltas
     sorted_keys = sorted(deltas.keys())
-    writer = open_video_writer(output_path, info["fps"], info["width"], info["height"])
+    writer = open_video_writer(output_path, info["fps"], info["width"], info["height"], sar=info.get("sar"))
     try:
         for frame_idx, frame in enumerate(extract_frames(config.video_path)):
             if frame_idx in deltas:

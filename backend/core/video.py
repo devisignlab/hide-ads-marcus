@@ -17,15 +17,38 @@ def get_video_info(path: str) -> dict:
         frame_count = int(cap.get(cv2.CAP_PROP_FRAME_COUNT))
         width = int(cap.get(cv2.CAP_PROP_FRAME_WIDTH))
         height = int(cap.get(cv2.CAP_PROP_FRAME_HEIGHT))
-        return {
+        info = {
             "fps": fps,
             "frame_count": frame_count,
             "width": width,
             "height": height,
             "duration_s": frame_count / fps if fps > 0 else 0,
+            "sar": None,
         }
     finally:
         cap.release()
+
+    # Get SAR via ffprobe (OpenCV doesn't expose it)
+    try:
+        result = subprocess.run(
+            ["ffprobe", "-v", "quiet", "-print_format", "json",
+             "-show_streams", path],
+            capture_output=True, text=True, timeout=10,
+        )
+        if result.returncode == 0:
+            import json
+            data = json.loads(result.stdout)
+            for stream in data.get("streams", []):
+                if stream.get("codec_type") == "video":
+                    sar = stream.get("sample_aspect_ratio", "1:1")
+                    if sar and sar != "1:1" and sar != "0:1":
+                        info["sar"] = sar
+                        logger.info(f"Video SAR: {sar}")
+                    break
+    except Exception:
+        pass
+
+    return info
 
 
 def extract_frames(path: str) -> Generator[np.ndarray, None, None]:
@@ -74,7 +97,7 @@ class FFmpegWriter:
     """
 
     def __init__(self, path: str, fps: float, width: int, height: int,
-                 crf: int = 18, preset: str = "medium"):
+                 crf: int = 18, preset: str = "medium", sar: str | None = None):
         self.width = width
         self.height = height
         self.path = path
@@ -90,9 +113,10 @@ class FFmpegWriter:
             "-crf", str(crf),
             "-preset", preset,
             "-pix_fmt", "yuv420p",
-            "-movflags", "+faststart",
-            path,
         ]
+        if sar:
+            cmd.extend(["-vf", f"setsar={sar}"])
+        cmd.extend(["-movflags", "+faststart", path])
         logger.info(f"FFmpegWriter: {' '.join(cmd)}")
         self.proc = subprocess.Popen(
             cmd, stdin=subprocess.PIPE, stderr=subprocess.PIPE,
@@ -117,9 +141,10 @@ class FFmpegWriter:
             logger.info(f"FFmpegWriter: {self.frames_written} frames → {self.path}")
 
 
-def open_video_writer(path: str, fps: float, width: int, height: int) -> FFmpegWriter:
+def open_video_writer(path: str, fps: float, width: int, height: int,
+                      sar: str | None = None) -> FFmpegWriter:
     """Open an FFmpeg pipe writer for H.264 encoding. Drop-in replacement for OpenCV."""
-    return FFmpegWriter(path, fps, width, height, crf=18, preset="medium")
+    return FFmpegWriter(path, fps, width, height, crf=23, preset="medium", sar=sar)
 
 
 def write_frame(writer: FFmpegWriter, frame: np.ndarray) -> None:
