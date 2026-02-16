@@ -1,7 +1,7 @@
 # backend/config.py
 from dataclasses import dataclass
 
-ATTACK_METHODS = ("fgsm", "pgd", "lsb", "uap", "combined")
+ATTACK_METHODS = ("fgsm", "pgd", "lsb", "uap", "combined", "turbo", "anti_deepfake", "auto")
 
 YOLO_MODEL = "yolov8n.pt"
 CLIP_MODEL = "ViT-B/32"
@@ -43,8 +43,16 @@ _PRESETS: dict[str, QualityPreset] = {
         name="high", method="pgd", pgd_steps=40,
         keyframe_interval=1, batch_size=2, epsilon=DEFAULT_EPSILON,
     ),
+    "aggressive": QualityPreset(
+        name="aggressive", method="pgd", pgd_steps=40,
+        keyframe_interval=5, batch_size=1, epsilon=32 / 255,
+    ),
 }
 
 
 def get_preset(name: str) -> QualityPreset:
     return _PRESETS[name]
+
+
+# Memory safety: max frames to hold in RAM at once
+MAX_FRAMES_IN_MEMORY = 3000  # ~3000 frames at 720p ≈ 7GB

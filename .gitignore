@@ -13,3 +13,4 @@ outputs/
 !tests/fixtures/*.mp4
 .DS_Store
 .claude/
+yolov8n.pt

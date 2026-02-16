@@ -1,0 +1,329 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Shield AI - Content Protection Platform</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=DM+Sans:ital,opsz,wght@0,9..40,300;0,9..40,400;0,9..40,500;0,9..40,600;0,9..40,700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="/css/style.css">
+</head>
+<body>
+    <!-- Ambient background -->
+    <div class="ambient-bg">
+        <div class="ambient-orb ambient-orb--1"></div>
+        <div class="ambient-orb ambient-orb--2"></div>
+        <div class="ambient-orb ambient-orb--3"></div>
+    </div>
+    <div class="noise-overlay"></div>
+
+    <!-- Nav -->
+    <nav class="nav">
+        <div class="nav-brand">
+            <div class="nav-logo">
+                <svg width="28" height="28" viewBox="0 0 28 28" fill="none">
+                    <path d="M14 2L3 8v12l11 6 11-6V8L14 2z" stroke="url(#logo-grad)" stroke-width="1.5" fill="none"/>
+                    <path d="M14 6l-7 4v8l7 4 7-4v-8l-7-4z" fill="url(#logo-grad)" opacity="0.15"/>
+                    <path d="M14 10l-3 2v4l3 2 3-2v-4l-3-2z" fill="url(#logo-grad)"/>
+                    <defs><linearGradient id="logo-grad" x1="3" y1="2" x2="25" y2="26"><stop stop-color="#60a5fa"/><stop offset="1" stop-color="#a78bfa"/></linearGradient></defs>
+                </svg>
+            </div>
+            <span class="nav-name">Shield AI</span>
+            <span class="nav-badge">BETA</span>
+        </div>
+        <div class="nav-status" id="nav-status">
+            <span class="status-dot"></span>
+            <span>System Ready</span>
+        </div>
+    </nav>
+
+    <main class="main">
+
+        <!-- ═══════════ SCREEN 1: UPLOAD ═══════════ -->
+        <section id="screen-upload" class="screen screen--active">
+            <div class="screen-header">
+                <h1 class="hero-title">Content Protection<br><span class="hero-accent">Platform</span></h1>
+                <p class="hero-sub">AI-powered adversarial shield that makes your videos bypass content moderation systems. Upload a video to begin.</p>
+            </div>
+
+            <div class="upload-zone" id="drop-zone">
+                <div class="upload-zone-inner">
+                    <div class="upload-icon">
+                        <svg width="48" height="48" viewBox="0 0 48 48" fill="none">
+                            <rect x="6" y="14" width="36" height="26" rx="4" stroke="currentColor" stroke-width="1.5" opacity="0.4"/>
+                            <path d="M24 10v20M16 18l8-8 8 8" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                        </svg>
+                    </div>
+                    <p class="upload-text">Drop your video here</p>
+                    <p class="upload-hint">or <label for="file-input" class="upload-link">browse files</label></p>
+                    <p class="upload-formats">MP4, MOV, AVI up to 500MB</p>
+                    <input type="file" id="file-input" accept="video/*" hidden>
+                </div>
+                <div class="upload-border"></div>
+            </div>
+
+            <div id="upload-progress" class="upload-progress hidden">
+                <div class="upload-progress-bar">
+                    <div class="upload-progress-fill" id="upload-fill"></div>
+                </div>
+                <span class="upload-progress-text" id="upload-text">Uploading...</span>
+            </div>
+        </section>
+
+        <!-- ═══════════ SCREEN 2: DIAGNOSIS ═══════════ -->
+        <section id="screen-diagnosis" class="screen">
+            <div class="screen-header">
+                <div class="step-indicator">
+                    <span class="step-num">02</span>
+                    <span class="step-label">Content Analysis</span>
+                </div>
+                <h2 class="section-title">Risk Diagnosis</h2>
+                <p class="section-sub" id="video-meta"></p>
+            </div>
+
+            <!-- Scanning animation -->
+            <div id="scan-overlay" class="scan-overlay">
+                <div class="scan-line"></div>
+                <p class="scan-text">Analyzing content with AI classifiers...</p>
+            </div>
+
+            <!-- Results (shown after scan) -->
+            <div id="diagnosis-results" class="diagnosis-results hidden">
+                <!-- Risk badge -->
+                <div class="risk-badge" id="risk-badge">
+                    <span class="risk-badge-label">RISK LEVEL</span>
+                    <span class="risk-badge-value" id="risk-value">CRITICAL</span>
+                </div>
+
+                <!-- Score cards -->
+                <div class="score-grid">
+                    <div class="score-card" id="card-deepfake">
+                        <div class="score-card-header">
+                            <span class="score-card-icon">
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><circle cx="10" cy="7" r="4" stroke="currentColor" stroke-width="1.5"/><path d="M3 18c0-3.866 3.134-7 7-7s7 3.134 7 7" stroke="currentColor" stroke-width="1.5"/></svg>
+                            </span>
+                            <span class="score-card-title">Deepfake Detection</span>
+                        </div>
+                        <div class="score-card-value" id="score-deepfake">75%</div>
+                        <div class="score-card-bar"><div class="score-card-fill" id="fill-deepfake"></div></div>
+                    </div>
+                    <div class="score-card" id="card-nsfw">
+                        <div class="score-card-header">
+                            <span class="score-card-icon">
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 2l2.5 5 5.5.8-4 3.9.9 5.3L10 14.5 5.1 17l.9-5.3-4-3.9 5.5-.8L10 2z" stroke="currentColor" stroke-width="1.5"/></svg>
+                            </span>
+                            <span class="score-card-title">NSFW / Sensual</span>
+                        </div>
+                        <div class="score-card-value" id="score-nsfw">13%</div>
+                        <div class="score-card-bar"><div class="score-card-fill" id="fill-nsfw"></div></div>
+                    </div>
+                    <div class="score-card" id="card-safe">
+                        <div class="score-card-header">
+                            <span class="score-card-icon">
+                                <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 2L3 6v5c0 4.4 3 8.5 7 9.5 4-1 7-5.1 7-9.5V6l-7-4z" stroke="currentColor" stroke-width="1.5"/></svg>
+                            </span>
+                            <span class="score-card-title">Safe Content</span>
+                        </div>
+                        <div class="score-card-value" id="score-safe">40%</div>
+                        <div class="score-card-bar"><div class="score-card-fill score-card-fill--safe" id="fill-safe"></div></div>
+                    </div>
+                </div>
+
+                <!-- Detected flags -->
+                <div class="flags-section">
+                    <h3 class="flags-title">Detected Issues</h3>
+                    <div class="flags-list" id="flags-list"></div>
+                </div>
+
+                <!-- Recommended protection -->
+                <div class="protection-plan">
+                    <h3 class="flags-title">Protection Plan</h3>
+                    <div class="plan-chips" id="plan-chips"></div>
+                    <div class="plan-meta">
+                        <span class="plan-time" id="plan-time">Est. ~8 min</span>
+                    </div>
+                </div>
+
+                <!-- Advanced toggle -->
+                <details class="advanced-toggle">
+                    <summary class="advanced-trigger">Advanced Settings</summary>
+                    <div class="advanced-body">
+                        <div class="form-field">
+                            <label>Attack Method</label>
+                            <select id="attack-method">
+                                <option value="auto" selected>Auto (Recommended)</option>
+                                <option value="anti_deepfake">Anti-Deepfake Only</option>
+                                <option value="turbo">Turbo (NSFW Only)</option>
+                                <option value="combined">Combined PGD</option>
+                                <option value="pgd">PGD (YOLO)</option>
+                                <option value="fgsm">FGSM (Fast)</option>
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label>Perturbation Strength: <span id="eps-val">16</span>/255</label>
+                            <input type="range" id="epsilon-slider" min="4" max="48" value="16" step="4">
+                        </div>
+                        <div class="form-field">
+                            <label>Quality Preset</label>
+                            <select id="preset">
+                                <option value="fast">Fast</option>
+                                <option value="standard">Standard</option>
+                                <option value="aggressive" selected>Aggressive</option>
+                            </select>
+                        </div>
+                        <div class="form-field">
+                            <label>CLIP Target</label>
+                            <input type="text" id="target-text" value="a safe family friendly product advertisement, professional clean content">
+                        </div>
+                        <div class="form-field">
+                            <label>CLIP Repel (auto-filled from analysis)</label>
+                            <input type="text" id="repel-text" value="">
+                        </div>
+                    </div>
+                </details>
+
+                <!-- CTA -->
+                <button class="cta-button" id="protect-btn">
+                    <span class="cta-icon">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 2L3 6v5c0 4.4 3 8.5 7 9.5 4-1 7-5.1 7-9.5V6l-7-4z" stroke="currentColor" stroke-width="2" fill="currentColor" opacity="0.15"/><path d="M7 10l2 2 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                    </span>
+                    <span>Protect Video</span>
+                </button>
+            </div>
+        </section>
+
+        <!-- ═══════════ SCREEN 3: PROCESSING ═══════════ -->
+        <section id="screen-processing" class="screen">
+            <div class="screen-header">
+                <div class="step-indicator">
+                    <span class="step-num">03</span>
+                    <span class="step-label">Processing</span>
+                </div>
+                <h2 class="section-title">Applying Protection</h2>
+            </div>
+
+            <div class="pipeline-steps">
+                <div class="pipeline-step" id="step-analyze" data-stage="analyzing_content,classifying_original">
+                    <div class="pipeline-step-icon">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="8" cy="8" r="6" stroke="currentColor" stroke-width="1.5"/><path d="M13 13l3 3" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                    </div>
+                    <div class="pipeline-step-body">
+                        <span class="pipeline-step-name">Analyzing content</span>
+                        <span class="pipeline-step-detail">Running AI classifiers on sample frames</span>
+                    </div>
+                    <div class="pipeline-step-status"></div>
+                </div>
+                <div class="pipeline-step" id="step-uap" data-stage="computing_uap">
+                    <div class="pipeline-step-icon">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="2" width="14" height="14" rx="3" stroke="currentColor" stroke-width="1.5"/><path d="M6 9h6M9 6v6" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                    </div>
+                    <div class="pipeline-step-body">
+                        <span class="pipeline-step-name">Computing CLIP shield</span>
+                        <span class="pipeline-step-detail">Universal adversarial perturbation against NSFW classifiers</span>
+                    </div>
+                    <div class="pipeline-step-status"></div>
+                </div>
+                <div class="pipeline-step" id="step-deepfake" data-stage="anti_deepfake_pgd">
+                    <div class="pipeline-step-icon">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><circle cx="9" cy="6" r="3.5" stroke="currentColor" stroke-width="1.5"/><path d="M2.5 16c0-3.6 2.9-6.5 6.5-6.5s6.5 2.9 6.5 6.5" stroke="currentColor" stroke-width="1.5"/></svg>
+                    </div>
+                    <div class="pipeline-step-body">
+                        <span class="pipeline-step-name">Anti-deepfake PGD</span>
+                        <span class="pipeline-step-detail" id="deepfake-detail">Gradient attack on keyframes</span>
+                    </div>
+                    <div class="pipeline-step-status"></div>
+                </div>
+                <div class="pipeline-step" id="step-stream" data-stage="streaming,perturbing">
+                    <div class="pipeline-step-icon">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><path d="M2 4h14M2 9h14M2 14h14" stroke="currentColor" stroke-width="1.5" stroke-linecap="round"/></svg>
+                    </div>
+                    <div class="pipeline-step-body">
+                        <span class="pipeline-step-name">Streaming frames</span>
+                        <span class="pipeline-step-detail">Applying perturbations with delta interpolation</span>
+                    </div>
+                    <div class="pipeline-step-status"></div>
+                </div>
+                <div class="pipeline-step" id="step-remux" data-stage="reconstructing">
+                    <div class="pipeline-step-icon">
+                        <svg width="18" height="18" viewBox="0 0 18 18" fill="none"><rect x="2" y="4" width="14" height="10" rx="2" stroke="currentColor" stroke-width="1.5"/><path d="M7 8l4 3-4 3V8z" fill="currentColor" opacity="0.5"/></svg>
+                    </div>
+                    <div class="pipeline-step-body">
+                        <span class="pipeline-step-name">Remux & finalize</span>
+                        <span class="pipeline-step-detail">Audio mux, hash bypass, metadata strip</span>
+                    </div>
+                    <div class="pipeline-step-status"></div>
+                </div>
+            </div>
+
+            <div class="progress-container">
+                <div class="progress-track">
+                    <div class="progress-bar" id="main-progress" style="width:0%"></div>
+                </div>
+                <div class="progress-meta">
+                    <span id="progress-pct">0%</span>
+                    <span id="progress-eta"></span>
+                </div>
+            </div>
+        </section>
+
+        <!-- ═══════════ SCREEN 4: RESULTS ═══════════ -->
+        <section id="screen-results" class="screen">
+            <div class="screen-header">
+                <div class="step-indicator">
+                    <span class="step-num">04</span>
+                    <span class="step-label">Complete</span>
+                </div>
+                <h2 class="section-title">Protection Applied</h2>
+            </div>
+
+            <!-- Status badge -->
+            <div class="result-badge" id="result-badge">
+                <svg width="32" height="32" viewBox="0 0 32 32" fill="none"><path d="M16 3L5 9v8c0 7 4.5 13.5 11 15 6.5-1.5 11-8 11-15V9L16 3z" fill="currentColor" opacity="0.12"/><path d="M16 3L5 9v8c0 7 4.5 13.5 11 15 6.5-1.5 11-8 11-15V9L16 3z" stroke="currentColor" stroke-width="1.5"/><path d="M11 16l3.5 3.5L21 13" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/></svg>
+                <span>All Checks Passed</span>
+            </div>
+
+            <!-- Comparison cards -->
+            <div class="comparison-grid">
+                <div class="comparison-card">
+                    <div class="comparison-card-header">
+                        <span class="comparison-label">Original</span>
+                        <span class="comparison-tag comparison-tag--danger">At Risk</span>
+                    </div>
+                    <div class="comparison-video">
+                        <video id="video-original" controls playsinline></video>
+                    </div>
+                    <div class="comparison-scores" id="scores-original"></div>
+                </div>
+                <div class="comparison-card comparison-card--protected">
+                    <div class="comparison-card-header">
+                        <span class="comparison-label">Protected</span>
+                        <span class="comparison-tag comparison-tag--safe">Safe</span>
+                    </div>
+                    <div class="comparison-video">
+                        <video id="video-protected" controls playsinline></video>
+                    </div>
+                    <div class="comparison-scores" id="scores-protected"></div>
+                </div>
+            </div>
+
+            <!-- Delta summary -->
+            <div class="delta-summary" id="delta-summary"></div>
+
+            <!-- Actions -->
+            <div class="result-actions">
+                <button class="cta-button" id="download-btn">
+                    <span class="cta-icon">
+                        <svg width="20" height="20" viewBox="0 0 20 20" fill="none"><path d="M10 3v10M6 9l4 4 4-4" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/><path d="M3 15v2h14v-2" stroke="currentColor" stroke-width="2" stroke-linecap="round"/></svg>
+                    </span>
+                    <span>Download Protected Video</span>
+                </button>
+                <button class="secondary-button" id="restart-btn">Process Another Video</button>
+            </div>
+        </section>
+
+    </main>
+
+    <script src="/js/app.js"></script>
+</body>
+</html>
